@@ -22,3 +22,25 @@ We need to provide Google Analytic like services to our customers. Please provid
 3. Provide metrics to customers with at most one hour delay.
 4. Run with minimum downtime.
 5. Have the ability to reprocess historical data in case of bugs in the processing logic.
+
+# Solution for Design Question
+
+In order to process a large number of records quickly, we need a microservices approach behind a load balancer, 
+and a queueing system in front that, like kafka. Requests come in through kafka topics, and then are routed via the 
+load balancer to the first non-busy microservice. New services can be spun up during high load.
+
+After processing the records, they can be put on another topic and processed into a database where they can be kept
+for historial records. Something like Coldline or Nearline GCP storage buckets would work for this, 
+as they are very cheap for minimum reading.
+
+The database technology chosen for reading must be robust. Regardless of technology chosen, replication should be a
+primary concern. Cassandra is a good candidate, as well as something like GCP Bigtable because of time-series data.
+
+To achieve minimum downtime, a canary deploy strategy should be implemented. New versions of services can be deployed
+as a rolling deploy, with a decreasing percentage of old version services remaining live to ensure that there are no
+errors in new versions. As well as helping with deployment, a microservice system achieves up time by efficient error
+recovery. When a service crashes, it can be restarted without impacting performance.
+
+To provide metrics to customers, we need a database that is good for metrics. Some good choices for this are: 
+ELK stack, InfluxDB with Grafana, or a managed service like Stackdriver Monitoring from GCP.
+
